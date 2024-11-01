@@ -1,0 +1,79 @@
+# A config file containing Bazel settings
+common --enable_bzlmod
+
+# https://github.com/bazelbuild/bazel/pull/20855
+common --noenable_workspace
+
+# Compresses remote cache for files larger than 100MB
+# NOTE: disk_cache is a local version of remote cache
+common:workflows --remote_cache_compression
+common:workflows --experimental_remote_cache_compression_threshold=100
+
+# Use BLAKE3 as digest function (will be the default in Bazel 8)
+startup --digest_function=BLAKE3
+
+# Note that this cache will grow without bound currently. You should
+# Periodically run `find "~/.cache/bazel_disk_cache" -type f -atime +30 -delete`
+# https://github.com/bazelbuild/bazel/issues/5139 tracks fixing this issue.
+common --disk_cache=~/.cache/bazel_disk_cache
+build --disk_cache=~/.cache/bazel_disk_cache
+fetch --disk_cache=~/.cache/bazel_disk_cache
+query --disk_cache=~/.cache/bazel_disk_cache
+sync --disk_cache=~/.cache/bazel_disk_cache
+test --disk_cache=~/.cache/bazel_disk_cache
+
+# Always have Bazel output why it (re)built something, should make debugging builds easier.
+# This has a small performance penalty. If builds become slow, we might want to try and turn this off.
+common --explain=bazel-explain.log
+common --verbose_explanations
+
+# Don't use legacy toolchain resolution
+common --incompatible_enable_cc_toolchain_resolution
+common --incompatible_enable_proto_toolchain_resolution
+
+# Don't leak PATH and LD_LIBRARY_PATH into the build. 
+build --incompatible_strict_action_env
+
+build --sandbox_default_allow_network=false
+build --heap_dump_on_oom
+build --noexperimental_check_output_files
+
+# Add build annotation for clippy and rustfmt by default.
+build --aspects=@rules_rust//rust:defs.bzl%rustfmt_aspect
+build --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
+
+build:debug -c dbg
+build:clippy --output_groups=+clippy_checks
+build:rustfmt --output_groups=+rustfmt_checks --@rules_rust//:rustfmt.toml=//:rustfmt.toml
+build:lint --config=rustfmt --config=clippy
+
+# Outputs expanded.rs which contains expanded macros
+build:nightly --@rules_rust//rust/toolchain/channel=nightly
+build:unpretty --aspects=@rules_rust//rust:defs.bzl%rust_unpretty_aspect
+build:unpretty --output_groups=+rust_unpretty
+build:unpretty --config=nightly
+
+run:rustfmt @rules_rust//:rustfmt --output_groups=+rustfmt_checks --@rules_rust//:rustfmt.toml=//:rustfmt.toml
+run:genra @rules_rust//tools/rust_analyzer:gen_rust_project
+
+# Pipelined_compilation=True means that we now build and depend on metadata files(`.rmeta's)
+# More information about pipelined_compilation
+# see: https://internals.rust-lang.org/t/evaluating-pipelined-rustc-compilation/10199
+build:check --@rules_rust//rust/settings:pipelined_compilation=True
+# By requesting only the output group containing the metadata files
+# we don't run actions that do full compilation
+build:check --output_groups=build_metadata
+
+test --build_tests_only
+test:verbose --test_output=all --test_arg=--nocapture
+
+common:ci --disk_cache=
+common:ci --color=yes
+common:ci --build_metadata=ROLE=CI
+build:ci --config=lint
+
+
+# This import should always be last to allow users to override
+# Allow user-side customization
+try-import %workspace%/user.bazelrc
+

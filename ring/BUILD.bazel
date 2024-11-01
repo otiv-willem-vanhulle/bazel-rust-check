@@ -1,0 +1,16 @@
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+
+rust_library(
+    name = "ring",
+    srcs = glob(["**/*.rs"]),
+    crate_root = "ring.rs",
+    visibility = ["//visibility:public"],
+    deps = [
+    ],
+)
+
+rust_test(
+    name = "ring_test",
+    crate = ":ring",
+    visibility = ["//visibility:public"],
+)
