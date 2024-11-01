@@ -46,13 +46,42 @@ bazel run @rules_rust//tools/upstream_wrapper:cargo check
 
 Maybe we can do something similar to the command
 
-```
+```sh
 bazel build --output_groups=+clippy_checks //...
 ```
 
 which checks with Clippy but add ` --message-format=json` somewhere?
 
-With or without this modification to the JSON settings, nothing happens if I hit save in my editor. It doesn't matter which editor. It also happens in editors like Zed, Lapce, Helix and so on.
+It seems like adding 
+```
+build --@rules_rust//:clippy_flags="--help"
+```
+to `.bazelrc` prints which flags we can pass to clippy, but the actually command is not Cargo Clippy. Its Clippy-driver
+
+It takes arguments as `rustc`, see https://github.com/rust-lang/rust-clippy#using-clippy-driver
+
+
+When trying 
+```sh
+build --@rules_rust//:clippy_flags=--rustc,--error-format=json
+```
+I get `error: Option 'error-format' given more than once`
+
+So I added 
+
+```
+build --@rules_rust//:error_format=json
+```
+
+And now 
+```
+bazel build  --output_groups=+clippy_checks //...
+```
+outputs something that starts to resemble the JSON from cargo check.
+
+## Reproduce problem
+
+Without Cargo check or the JSON output of some Clippy tool, nothing happens if I hit save in my editor. It doesn't matter which editor. It also happens in editors like Zed, Lapce, Helix and so on.
 
 Too see this, you can 
 

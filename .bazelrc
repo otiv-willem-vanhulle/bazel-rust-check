@@ -42,6 +42,12 @@ build --noexperimental_check_output_files
 build --aspects=@rules_rust//rust:defs.bzl%rustfmt_aspect
 build --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
 
+
+### Trying to output as JSON
+# build --@rules_rust//:clippy_flags=-Dclippy::pedantic
+# build --@rules_rust//:clippy_flags=--rustc,--error-format=json
+build --@rules_rust//:error_format=json
+
 build:debug -c dbg
 build:clippy --output_groups=+clippy_checks
 build:rustfmt --output_groups=+rustfmt_checks --@rules_rust//:rustfmt.toml=//:rustfmt.toml

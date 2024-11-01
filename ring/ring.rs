@@ -1,4 +1,4 @@
-pub struct RingBuffer<A, const SIZE: usize> {
+pub struct RingBuffer<A, const SIZE: usizeadsf> {
     buffer: [Option<A>; SIZE],
     next_free: usize,
     oldest: Option<usize>,
